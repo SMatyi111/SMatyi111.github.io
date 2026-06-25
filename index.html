@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Merchant Ops Lab</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Pi Testnet research prototype</p>
+        <h1>Merchant Ops Lab</h1>
+        <p class="lead">
+          A small Pi Browser test app for learning whether Pi-accepting merchants need better tools for listings,
+          orders, payment status, and trust workflows.
+        </p>
+        <div class="status-card" aria-live="polite">
+          <span class="status-dot" id="sdk-status-dot"></span>
+          <span id="sdk-status">Checking Pi SDK...</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Pi account test</h2>
+        <p>
+          Start with minimal consent. By default this app requests no optional scopes. Username is optional for testing
+          a greeting only.
+        </p>
+
+        <label class="checkbox-row">
+          <input id="username-scope" type="checkbox" />
+          Request username scope
+        </label>
+
+        <button id="auth-button" type="button">Authenticate with Pi</button>
+
+        <pre id="auth-result" class="result" aria-live="polite">Not authenticated.</pre>
+      </section>
+
+      <section class="grid">
+        <article>
+          <h2>Merchant problem</h2>
+          <ul>
+            <li>What happened after a buyer says they paid?</li>
+            <li>Which orders still need fulfillment?</li>
+            <li>Which listings are trustworthy and current?</li>
+          </ul>
+        </article>
+
+        <article>
+          <h2>Current experiment</h2>
+          <ul>
+            <li>Confirm Pi SDK auth works in sandbox.</li>
+            <li>Keep Testnet and no payment flow first.</li>
+            <li>Use this app as the portal development URL.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
