@@ -3,10 +3,13 @@ const sdkStatusDot = document.querySelector("#sdk-status-dot");
 const authButton = document.querySelector("#auth-button");
 const authResult = document.querySelector("#auth-result");
 const usernameScope = document.querySelector("#username-scope");
+const paymentButton = document.querySelector("#payment-button");
+const paymentResult = document.querySelector("#payment-result");
 
 const searchParams = new URLSearchParams(window.location.search);
 const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
 const sandbox = searchParams.get("sandbox") !== "0" && (isLocalHost || searchParams.get("sandbox") === "1");
+const backendBaseUrl = (searchParams.get("api") || window.MOL_BACKEND_BASE_URL || "").replace(/\/$/, "");
 
 function setStatus(message, mode) {
   sdkStatus.textContent = message;
@@ -15,6 +18,10 @@ function setStatus(message, mode) {
 
 function printResult(value) {
   authResult.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+
+function printPaymentResult(value) {
+  paymentResult.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
 
 function safeAuthResult(auth) {
@@ -41,16 +48,35 @@ function withTimeout(promise, timeoutMs, message) {
 }
 
 function onIncompletePaymentFound(payment) {
-  printResult({
-    warning: "Incomplete payment found. Payment flows are intentionally not implemented in this prototype.",
+  printPaymentResult({
+    warning: "Incomplete payment found. Manual follow-up may be required.",
     paymentId: payment?.identifier || payment?.paymentId || null
   });
+}
+
+async function postBackend(path, payload) {
+  const response = await fetch(`${backendBaseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok || body.ok === false) {
+    throw new Error(body.error || body.pi?.error || `Backend request failed with HTTP ${response.status}`);
+  }
+
+  return body;
 }
 
 function initializePi() {
   if (!window.Pi) {
     setStatus("Pi SDK not available. Open in Pi Browser or check network access.", "warn");
     authButton.disabled = true;
+    paymentButton.disabled = true;
     return;
   }
 
@@ -58,9 +84,11 @@ function initializePi() {
     window.Pi.init({ version: "2.0", sandbox });
     setStatus(`Pi SDK ready. Sandbox: ${sandbox ? "on" : "off"}.`, "ok");
     authButton.disabled = false;
+    paymentButton.disabled = false;
   } catch (error) {
     setStatus("Pi SDK initialization failed.", "warn");
     authButton.disabled = true;
+    paymentButton.disabled = true;
     printResult(error.message || String(error));
   }
 }
@@ -89,6 +117,64 @@ authButton.addEventListener("click", async () => {
     });
   } finally {
     authButton.disabled = false;
+  }
+});
+
+paymentButton.addEventListener("click", async () => {
+  if (!window.Pi) {
+    printPaymentResult("Pi SDK is unavailable.");
+    return;
+  }
+
+  paymentButton.disabled = true;
+  printPaymentResult("Starting Testnet payment. The app will call the backend only after Pi returns a payment id.");
+
+  try {
+    await withTimeout(
+      window.Pi.authenticate(["payments"], onIncompletePaymentFound),
+      30000,
+      "Pi payment authentication did not complete within 30 seconds."
+    );
+
+    window.Pi.createPayment(
+      {
+        amount: 0.01,
+        memo: "Merchant Ops Lab Testnet checklist payment",
+        metadata: {
+          app: "merchant-ops-lab",
+          purpose: "portal-checklist-testnet-payment"
+        }
+      },
+      {
+        onReadyForServerApproval: async (paymentId) => {
+          printPaymentResult({ status: "Approving payment on backend.", paymentId });
+          await postBackend("/api/pi/payments/approve", { paymentId });
+          printPaymentResult({ status: "Payment approved by backend.", paymentId });
+        },
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          printPaymentResult({ status: "Completing payment on backend.", paymentId, txid });
+          await postBackend("/api/pi/payments/complete", { paymentId, txid });
+          printPaymentResult({ status: "Payment completed by backend.", paymentId, txid });
+        },
+        onCancel: (paymentId) => {
+          printPaymentResult({ status: "Payment cancelled.", paymentId });
+          paymentButton.disabled = false;
+        },
+        onError: (error, payment) => {
+          printPaymentResult({
+            error: error?.message || String(error),
+            paymentId: payment?.identifier || payment?.paymentId || null
+          });
+          paymentButton.disabled = false;
+        }
+      }
+    );
+  } catch (error) {
+    printPaymentResult({
+      error: error?.message || String(error),
+      note: "Payment requires Pi Browser, Testnet/sandbox authorization, and a backend with PI_API_KEY configured."
+    });
+    paymentButton.disabled = false;
   }
 });
 

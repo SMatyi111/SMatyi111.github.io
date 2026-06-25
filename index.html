@@ -40,6 +40,18 @@
         <pre id="auth-result" class="result" aria-live="polite">Not authenticated.</pre>
       </section>
 
+      <section class="panel">
+        <h2>Testnet payment check</h2>
+        <p>
+          This is for the portal checklist transaction step. It creates a tiny Testnet payment and requires a secure
+          backend to approve and complete it. The Pi API key must never be placed in browser code.
+        </p>
+
+        <button id="payment-button" type="button">Create 0.01 Test-π payment</button>
+
+        <pre id="payment-result" class="result" aria-live="polite">Payment not started.</pre>
+      </section>
+
       <section class="grid">
         <article>
           <h2>Merchant problem</h2>
@@ -54,8 +66,8 @@
           <h2>Current experiment</h2>
           <ul>
             <li>Confirm Pi SDK auth works in sandbox.</li>
-            <li>Keep Testnet and no payment flow first.</li>
-            <li>Use this app as the portal development URL.</li>
+            <li>Use Testnet payment flow only after backend env is configured.</li>
+            <li>Keep API keys server-side only.</li>
           </ul>
         </article>
       </section>
