@@ -9,7 +9,10 @@ const paymentResult = document.querySelector("#payment-result");
 const searchParams = new URLSearchParams(window.location.search);
 const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
 const sandbox = searchParams.get("sandbox") !== "0" && (isLocalHost || searchParams.get("sandbox") === "1");
-const backendBaseUrl = (searchParams.get("api") || window.MOL_BACKEND_BASE_URL || "").replace(/\/$/, "");
+const defaultBackendBaseUrl = window.location.hostname === "smatyi111.github.io"
+  ? "https://pi-network-opportunity-research.vercel.app"
+  : "";
+const backendBaseUrl = (searchParams.get("api") || window.MOL_BACKEND_BASE_URL || defaultBackendBaseUrl).replace(/\/$/, "");
 
 function setStatus(message, mode) {
   sdkStatus.textContent = message;
