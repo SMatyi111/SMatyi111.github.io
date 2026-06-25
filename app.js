@@ -27,6 +27,19 @@ function safeAuthResult(auth) {
   };
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error(message));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    window.clearTimeout(timeoutId);
+  });
+}
+
 function onIncompletePaymentFound(payment) {
   printResult({
     warning: "Incomplete payment found. Payment flows are intentionally not implemented in this prototype.",
@@ -63,7 +76,11 @@ authButton.addEventListener("click", async () => {
   printResult(`Requesting Pi authentication with scopes: ${scopes.length ? scopes.join(", ") : "(none)"}`);
 
   try {
-    const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+    const auth = await withTimeout(
+      window.Pi.authenticate(scopes, onIncompletePaymentFound),
+      30000,
+      "Pi authentication did not complete within 30 seconds. The app may need the Developer Portal sandbox URL/authorization flow, or the portal checklist may still be blocked by wallet/API setup."
+    );
     printResult(safeAuthResult(auth));
   } catch (error) {
     printResult({
