@@ -47,9 +47,123 @@
           backend to approve and complete it. The Pi API key must never be placed in browser code.
         </p>
 
-        <button id="payment-button" type="button">Create 0.01 Test-π payment</button>
+        <button id="payment-button" type="button">Create 0.01 Test-Pi payment</button>
 
         <pre id="payment-result" class="result" aria-live="polite">Payment not started.</pre>
+      </section>
+
+      <section class="panel">
+        <p class="eyebrow">Validation sprint 01</p>
+        <h2>Today in the shop</h2>
+        <p>
+          A static merchant-ops sketch for testing one question: after a Pi payment, does the seller need a clearer
+          view of payment status, fulfillment, buyer updates, and receipt trail?
+        </p>
+
+        <div class="metrics" aria-label="Merchant order summary">
+          <article>
+            <span class="metric-value" id="paid-count">2</span>
+            <span class="metric-label">paid orders</span>
+          </article>
+          <article>
+            <span class="metric-value" id="action-count">1</span>
+            <span class="metric-label">needs action</span>
+          </article>
+          <article>
+            <span class="metric-value">0.37</span>
+            <span class="metric-label">Test-Pi tracked</span>
+          </article>
+        </div>
+
+        <div class="orders" aria-label="Mock merchant orders">
+          <article class="order-card" data-order-id="pop-up-coffee">
+            <div class="order-header">
+              <div>
+                <p class="eyebrow">Order MOL-1042</p>
+                <h3>Pop-up coffee pickup</h3>
+              </div>
+              <span class="badge paid">Paid</span>
+            </div>
+            <dl class="order-details">
+              <div>
+                <dt>Amount</dt>
+                <dd>0.12 Test-Pi</dd>
+              </div>
+              <div>
+                <dt>Buyer note</dt>
+                <dd>Pickup after 16:00, oat milk.</dd>
+              </div>
+              <div>
+                <dt>Fulfillment</dt>
+                <dd data-fulfillment-label>Needs action</dd>
+              </div>
+            </dl>
+            <p class="buyer-update" data-buyer-update>
+              Suggested buyer update: "Payment received. Your coffee order is queued for pickup after 16:00."
+            </p>
+            <button class="secondary-button" type="button" data-fulfill-button>Mark fulfilled</button>
+            <ol class="receipt-trail" data-receipt-trail>
+              <li>Payment created in Pi Browser.</li>
+              <li>Backend approved payment.</li>
+              <li>Waiting for merchant fulfillment.</li>
+            </ol>
+          </article>
+
+          <article class="order-card">
+            <div class="order-header">
+              <div>
+                <p class="eyebrow">Order MOL-1041</p>
+                <h3>Market stall reservation</h3>
+              </div>
+              <span class="badge fulfilled">Fulfilled</span>
+            </div>
+            <dl class="order-details">
+              <div>
+                <dt>Amount</dt>
+                <dd>0.25 Test-Pi</dd>
+              </div>
+              <div>
+                <dt>Buyer note</dt>
+                <dd>Saturday table near entrance.</dd>
+              </div>
+              <div>
+                <dt>Fulfillment</dt>
+                <dd>Receipt sent</dd>
+              </div>
+            </dl>
+            <p class="buyer-update">Buyer update sent: "Reservation confirmed. Bring your QR receipt on Saturday."</p>
+            <ol class="receipt-trail">
+              <li>Payment completed.</li>
+              <li>Merchant confirmed reservation.</li>
+              <li>Buyer receipt sent.</li>
+            </ol>
+          </article>
+
+          <article class="order-card muted-order">
+            <div class="order-header">
+              <div>
+                <p class="eyebrow">Draft MOL-1043</p>
+                <h3>Custom delivery request</h3>
+              </div>
+              <span class="badge pending">Waiting</span>
+            </div>
+            <dl class="order-details">
+              <div>
+                <dt>Amount</dt>
+                <dd>Quote needed</dd>
+              </div>
+              <div>
+                <dt>Buyer note</dt>
+                <dd>Can you deliver outside normal hours?</dd>
+              </div>
+              <div>
+                <dt>Fulfillment</dt>
+                <dd>Not ready</dd>
+              </div>
+            </dl>
+            <p class="buyer-update">Suggested next step: ask one clarifying question before requesting payment.</p>
+          </article>
+        </div>
       </section>
 
       <section class="grid">

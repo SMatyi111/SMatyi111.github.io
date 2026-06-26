@@ -1,1 +1,5 @@
-{"ok":true,"app":"Merchant Ops Lab","network":"Pi Testnet"}
+{
+  "ok": true,
+  "app": "Merchant Ops Lab",
+  "source": "experiments/in-flight/2026-06-25-merchant-ops-lab-webapp/public"
+}

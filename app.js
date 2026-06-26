@@ -5,6 +5,8 @@ const authResult = document.querySelector("#auth-result");
 const usernameScope = document.querySelector("#username-scope");
 const paymentButton = document.querySelector("#payment-button");
 const paymentResult = document.querySelector("#payment-result");
+const actionCount = document.querySelector("#action-count");
+const fulfillButtons = document.querySelectorAll("[data-fulfill-button]");
 
 const searchParams = new URLSearchParams(window.location.search);
 const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
@@ -96,6 +98,37 @@ function initializePi() {
   }
 }
 
+function updateOrderSummary() {
+  const openActions = document.querySelectorAll('[data-fulfillment-label][data-state="needs-action"]').length;
+  if (actionCount) {
+    actionCount.textContent = String(openActions);
+  }
+}
+
+fulfillButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const orderCard = button.closest("[data-order-id]");
+    const fulfillmentLabel = orderCard?.querySelector("[data-fulfillment-label]");
+    const buyerUpdate = orderCard?.querySelector("[data-buyer-update]");
+    const receiptTrail = orderCard?.querySelector("[data-receipt-trail]");
+    const statusBadge = orderCard?.querySelector(".badge");
+
+    if (!orderCard || !fulfillmentLabel || !buyerUpdate || !receiptTrail || !statusBadge) {
+      return;
+    }
+
+    fulfillmentLabel.textContent = "Fulfilled";
+    fulfillmentLabel.dataset.state = "fulfilled";
+    buyerUpdate.textContent = 'Buyer update sent: "Payment received and pickup is ready. Show this receipt at pickup."';
+    receiptTrail.insertAdjacentHTML("beforeend", "<li>Merchant marked the order fulfilled.</li>");
+    statusBadge.textContent = "Fulfilled";
+    statusBadge.className = "badge fulfilled";
+    button.textContent = "Fulfilled";
+    button.disabled = true;
+    updateOrderSummary();
+  });
+});
+
 authButton.addEventListener("click", async () => {
   if (!window.Pi) {
     printResult("Pi SDK is unavailable.");
@@ -181,4 +214,9 @@ paymentButton.addEventListener("click", async () => {
   }
 });
 
+document.querySelectorAll("[data-fulfillment-label]").forEach((label) => {
+  label.dataset.state = label.textContent.toLowerCase().includes("needs") ? "needs-action" : "fulfilled";
+});
+
+updateOrderSummary();
 initializePi();
