@@ -166,6 +166,97 @@
         </div>
       </section>
 
+      <section class="panel">
+        <p class="eyebrow">Interview capture</p>
+        <h2>Merchant signal log</h2>
+        <p>
+          Use this during a demo call or chat. It stores nothing on a server. Generate a compact summary, copy it, and
+          paste it into the research notes after the conversation.
+        </p>
+
+        <form id="signal-form" class="signal-form">
+          <label>
+            Merchant type
+            <input id="merchant-type" name="merchantType" type="text" placeholder="Cafe, market seller, online shop..." />
+          </label>
+
+          <label>
+            Current tracking method
+            <textarea
+              id="current-method"
+              name="currentMethod"
+              rows="3"
+              placeholder="Chat messages, spreadsheet, memory, marketplace app..."
+            ></textarea>
+          </label>
+
+          <label>
+            Pain level
+            <select id="pain-level" name="painLevel">
+              <option value="">Select one</option>
+              <option value="1 - no pain">1 - no pain</option>
+              <option value="2 - mild annoyance">2 - mild annoyance</option>
+              <option value="3 - recurring problem">3 - recurring problem</option>
+              <option value="4 - costly problem">4 - costly problem</option>
+              <option value="5 - urgent problem">5 - urgent problem</option>
+            </select>
+          </label>
+
+          <fieldset>
+            <legend>Strongest requested feature</legend>
+            <label class="radio-row">
+              <input name="requestedFeature" type="radio" value="Payment status confirmation" />
+              Payment status confirmation
+            </label>
+            <label class="radio-row">
+              <input name="requestedFeature" type="radio" value="Fulfillment tracking" />
+              Fulfillment tracking
+            </label>
+            <label class="radio-row">
+              <input name="requestedFeature" type="radio" value="Buyer update templates" />
+              Buyer update templates
+            </label>
+            <label class="radio-row">
+              <input name="requestedFeature" type="radio" value="Receipt or dispute trail" />
+              Receipt or dispute trail
+            </label>
+            <label class="radio-row">
+              <input name="requestedFeature" type="radio" value="Discovery or traffic instead" />
+              Discovery or traffic instead
+            </label>
+          </fieldset>
+
+          <label>
+            Willingness signal
+            <select id="willingness" name="willingness">
+              <option value="">Select one</option>
+              <option value="No interest">No interest</option>
+              <option value="Would try free demo">Would try free demo</option>
+              <option value="Would pay for setup/support">Would pay for setup/support</option>
+              <option value="Would pay monthly">Would pay monthly</option>
+            </select>
+          </label>
+
+          <label>
+            Exact quote or note
+            <textarea
+              id="merchant-note"
+              name="merchantNote"
+              rows="3"
+              placeholder="Write one concrete quote or objection..."
+            ></textarea>
+          </label>
+
+          <div class="button-row">
+            <button type="submit">Generate summary</button>
+            <button id="copy-signal-button" class="secondary-button" type="button">Copy summary</button>
+            <button id="reset-signal-button" class="secondary-button" type="reset">Reset</button>
+          </div>
+        </form>
+
+        <pre id="signal-result" class="result" aria-live="polite">No interview signal captured yet.</pre>
+      </section>
+
       <section class="grid">
         <article>
           <h2>Merchant problem</h2>

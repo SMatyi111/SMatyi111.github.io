@@ -117,6 +117,58 @@ h2 {
   margin: 18px 0;
 }
 
+.signal-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.signal-form label,
+.signal-form fieldset {
+  border: 0;
+  color: var(--ink);
+  display: grid;
+  font-weight: 800;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.signal-form input[type="text"],
+.signal-form select,
+.signal-form textarea {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.signal-form textarea {
+  resize: vertical;
+}
+
+.signal-form legend {
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.radio-row {
+  align-items: center;
+  display: flex !important;
+  font-weight: 500 !important;
+  gap: 10px !important;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 button {
   background: var(--purple);
   border: 0;

@@ -7,6 +7,9 @@ const paymentButton = document.querySelector("#payment-button");
 const paymentResult = document.querySelector("#payment-result");
 const actionCount = document.querySelector("#action-count");
 const fulfillButtons = document.querySelectorAll("[data-fulfill-button]");
+const signalForm = document.querySelector("#signal-form");
+const signalResult = document.querySelector("#signal-result");
+const copySignalButton = document.querySelector("#copy-signal-button");
 
 const searchParams = new URLSearchParams(window.location.search);
 const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
@@ -27,6 +30,10 @@ function printResult(value) {
 
 function printPaymentResult(value) {
   paymentResult.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+
+function printSignalResult(value) {
+  signalResult.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
 
 function safeAuthResult(auth) {
@@ -127,6 +134,59 @@ fulfillButtons.forEach((button) => {
     button.disabled = true;
     updateOrderSummary();
   });
+});
+
+function getFormValue(formData, key) {
+  return String(formData.get(key) || "").trim();
+}
+
+function buildSignalSummary(formData) {
+  const capturedAt = new Date().toISOString();
+  const requestedFeature = getFormValue(formData, "requestedFeature") || "Not selected";
+
+  return {
+    capturedAt,
+    merchantType: getFormValue(formData, "merchantType") || "Unknown",
+    currentMethod: getFormValue(formData, "currentMethod") || "Not captured",
+    painLevel: getFormValue(formData, "painLevel") || "Not selected",
+    requestedFeature,
+    willingness: getFormValue(formData, "willingness") || "Not selected",
+    quoteOrNote: getFormValue(formData, "merchantNote") || "Not captured",
+    decisionHint: requestedFeature.includes("Discovery")
+      ? "May indicate pivot toward discovery/listing demand."
+      : "Relevant to merchant post-payment operations if pain level is 3+."
+  };
+}
+
+signalForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const formData = new FormData(signalForm);
+  printSignalResult(buildSignalSummary(formData));
+});
+
+signalForm?.addEventListener("reset", () => {
+  window.setTimeout(() => {
+    printSignalResult("No interview signal captured yet.");
+  }, 0);
+});
+
+copySignalButton?.addEventListener("click", async () => {
+  const text = signalResult?.textContent || "";
+
+  if (!text || text === "No interview signal captured yet.") {
+    printSignalResult("Generate a summary before copying.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    copySignalButton.textContent = "Copied";
+    window.setTimeout(() => {
+      copySignalButton.textContent = "Copy summary";
+    }, 1800);
+  } catch {
+    printSignalResult(`${text}\n\nCopy failed. Select this text manually.`);
+  }
 });
 
 authButton.addEventListener("click", async () => {
