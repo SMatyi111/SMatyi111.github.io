@@ -1,282 +1,348 @@
-const sdkStatus = document.querySelector("#sdk-status");
-const sdkStatusDot = document.querySelector("#sdk-status-dot");
-const authButton = document.querySelector("#auth-button");
-const authResult = document.querySelector("#auth-result");
-const usernameScope = document.querySelector("#username-scope");
-const paymentButton = document.querySelector("#payment-button");
-const paymentResult = document.querySelector("#payment-result");
-const actionCount = document.querySelector("#action-count");
-const fulfillButtons = document.querySelectorAll("[data-fulfill-button]");
-const signalForm = document.querySelector("#signal-form");
-const signalResult = document.querySelector("#signal-result");
-const copySignalButton = document.querySelector("#copy-signal-button");
+import {
+  calculateStreak,
+  challengeNumber,
+  createChallenge,
+  millisecondsUntilNextUtcDay,
+  resultGrid,
+  scoreRound,
+  summarizeGame,
+  utcDayKey
+} from "./game-engine.js?v=0.1.1";
+import { analyticsChoice, resetAllLocalData, setAnalyticsChoice, track } from "./analytics.js?v=0.1.1";
 
-const searchParams = new URLSearchParams(window.location.search);
-const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
-const sandbox = searchParams.get("sandbox") !== "0" && (isLocalHost || searchParams.get("sandbox") === "1");
-const defaultBackendBaseUrl = window.location.hostname === "smatyi111.github.io"
-  ? "https://pi-network-opportunity-research.vercel.app"
-  : "";
-const backendBaseUrl = (searchParams.get("api") || window.MOL_BACKEND_BASE_URL || defaultBackendBaseUrl).replace(/\/$/, "");
+const STATE_KEY = "tracespark:game-state:v1";
+const dayKey = utcDayKey();
+const challenge = createChallenge(dayKey);
 
-function setStatus(message, mode) {
-  sdkStatus.textContent = message;
-  sdkStatusDot.className = `status-dot ${mode}`;
+const elements = {
+  welcome: document.querySelector("#welcome-view"),
+  game: document.querySelector("#game-view"),
+  result: document.querySelector("#result-view"),
+  challengeNumber: document.querySelector("#challenge-number"),
+  streak: document.querySelector("#streak-count"),
+  authButton: document.querySelector("#auth-button"),
+  previewButton: document.querySelector("#preview-button"),
+  sdkStatus: document.querySelector("#sdk-status"),
+  roundTitle: document.querySelector("#round-title"),
+  roundDots: document.querySelector("#round-dots"),
+  phaseIcon: document.querySelector("#phase-icon"),
+  phaseTitle: document.querySelector("#phase-title"),
+  phaseMessage: document.querySelector("#phase-message"),
+  grid: document.querySelector("#spark-grid"),
+  inputLabel: document.querySelector("#input-label"),
+  inputMarks: document.querySelector("#input-marks"),
+  resultPercent: document.querySelector("#result-percent"),
+  resultTitle: document.querySelector("#result-title"),
+  resultSummary: document.querySelector("#result-summary"),
+  resultGrid: document.querySelector("#result-grid"),
+  resultScore: document.querySelector("#result-score"),
+  resultStreak: document.querySelector("#result-streak"),
+  countdown: document.querySelector("#next-countdown"),
+  shareButton: document.querySelector("#share-button"),
+  replayButton: document.querySelector("#replay-button"),
+  shareStatus: document.querySelector("#share-status"),
+  consentDialog: document.querySelector("#consent-dialog"),
+  allowAnalytics: document.querySelector("#allow-analytics"),
+  declineAnalytics: document.querySelector("#decline-analytics"),
+  privacySettings: document.querySelector("#privacy-settings-button")
+};
+
+let authenticated = false;
+let previewMode = false;
+let acceptingInput = false;
+let currentRound = 0;
+let currentInput = [];
+let roundResults = [];
+let countdownTimer;
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
-function printResult(value) {
-  authResult.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+function readState() {
+  try {
+    return JSON.parse(localStorage.getItem(STATE_KEY)) || { streak: null, completions: {} };
+  } catch {
+    return { streak: null, completions: {} };
+  }
 }
 
-function printPaymentResult(value) {
-  paymentResult.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+function writeState(state) {
+  const days = Object.keys(state.completions || {}).sort().slice(-31);
+  state.completions = Object.fromEntries(days.map((day) => [day, state.completions[day]]));
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
 }
 
-function printSignalResult(value) {
-  signalResult.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+function setView(name) {
+  elements.welcome.hidden = name !== "welcome";
+  elements.game.hidden = name !== "game";
+  elements.result.hidden = name !== "result";
 }
 
-function safeAuthResult(auth) {
-  return {
-    accessTokenPresent: Boolean(auth?.accessToken),
-    user: {
-      uid: auth?.user?.uid || null,
-      username: auth?.user?.username || null
-    }
-  };
+function setPhase(title, message, icon = "◉") {
+  elements.phaseTitle.textContent = title;
+  elements.phaseMessage.textContent = message;
+  elements.phaseIcon.textContent = icon;
 }
 
-function withTimeout(promise, timeoutMs, message) {
-  let timeoutId;
-  const timeout = new Promise((_, reject) => {
-    timeoutId = window.setTimeout(() => {
-      reject(new Error(message));
-    }, timeoutMs);
+function buildGrid() {
+  elements.grid.replaceChildren();
+  for (let index = 0; index < 16; index += 1) {
+    const button = document.createElement("button");
+    button.className = "spark-cell";
+    button.type = "button";
+    button.dataset.cell = String(index);
+    button.setAttribute("aria-label", `Spark ${index + 1}`);
+    button.addEventListener("click", () => handleCell(index, button));
+    elements.grid.append(button);
+  }
+}
+
+function renderRoundProgress() {
+  elements.roundDots.replaceChildren();
+  challenge.forEach((_, index) => {
+    const dot = document.createElement("span");
+    if (index < currentRound) dot.className = "complete";
+    if (index === currentRound) dot.className = "active";
+    elements.roundDots.append(dot);
   });
-
-  return Promise.race([promise, timeout]).finally(() => {
-    window.clearTimeout(timeoutId);
-  });
 }
 
-function onIncompletePaymentFound(payment) {
-  printPaymentResult({
-    warning: "Incomplete payment found. Manual follow-up may be required.",
-    paymentId: payment?.identifier || payment?.paymentId || null
-  });
+function renderInputMarks(length) {
+  elements.inputMarks.replaceChildren();
+  for (let index = 0; index < length; index += 1) {
+    const mark = document.createElement("span");
+    const value = currentInput[index];
+    if (value !== undefined) mark.className = value === challenge[currentRound][index] ? "correct" : "incorrect";
+    elements.inputMarks.append(mark);
+  }
 }
 
-async function postBackend(path, payload) {
-  const response = await fetch(`${backendBaseUrl}${path}`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+async function previewPath(path) {
+  acceptingInput = false;
+  elements.grid.classList.remove("accepting");
+  setPhase("Watch the path", `${path.length} sparks will light up.`, "◎");
+  elements.inputLabel.textContent = "Watch closely";
+  renderInputMarks(path.length);
+  await sleep(650);
 
-  const body = await response.json().catch(() => ({}));
-
-  if (!response.ok || body.ok === false) {
-    throw new Error(body.error || body.pi?.error || `Backend request failed with HTTP ${response.status}`);
+  for (const cell of path) {
+    const button = elements.grid.querySelector(`[data-cell="${cell}"]`);
+    button.classList.add("preview");
+    await sleep(430);
+    button.classList.remove("preview");
+    await sleep(130);
   }
 
-  return body;
+  setPhase("Your turn", "Tap the sparks in the same order.", "↗");
+  elements.inputLabel.textContent = `0 of ${path.length}`;
+  elements.grid.classList.add("accepting");
+  acceptingInput = true;
+}
+
+async function beginRound() {
+  currentInput = [];
+  elements.roundTitle.textContent = `Round ${currentRound + 1} of ${challenge.length}`;
+  renderRoundProgress();
+  renderInputMarks(challenge[currentRound].length);
+  await previewPath(challenge[currentRound]);
+}
+
+async function handleCell(cell, button) {
+  if (!acceptingInput) return;
+  const expected = challenge[currentRound][currentInput.length];
+  currentInput.push(cell);
+  button.classList.add(cell === expected ? "correct" : "incorrect");
+  window.setTimeout(() => button.classList.remove("correct", "incorrect"), 260);
+  renderInputMarks(challenge[currentRound].length);
+  elements.inputLabel.textContent = `${currentInput.length} of ${challenge[currentRound].length}`;
+
+  if (currentInput.length < challenge[currentRound].length) return;
+  acceptingInput = false;
+  elements.grid.classList.remove("accepting");
+  const result = scoreRound(challenge[currentRound], currentInput);
+  roundResults.push(result);
+  setPhase(
+    result.correct === result.total ? "Perfect trace" : `${result.correct} of ${result.total} correct`,
+    currentRound + 1 < challenge.length ? "Next path coming up." : "Building your result.",
+    result.correct === result.total ? "✓" : "◇"
+  );
+  await sleep(950);
+
+  currentRound += 1;
+  if (currentRound < challenge.length) await beginRound();
+  else finishGame();
+}
+
+function resultMessage(summary) {
+  if (summary.percent === 100) return ["Flawless signal.", "You traced every spark in order."];
+  if (summary.percent >= 80) return ["Signal locked.", "A sharp run with only a little noise."];
+  if (summary.percent >= 60) return ["Path captured.", "The signal held. Tomorrow brings a new route."];
+  return ["Signal found.", "You completed the path. A fresh route arrives tomorrow."];
+}
+
+function updateCountdown() {
+  const remaining = millisecondsUntilNextUtcDay();
+  const hours = Math.floor(remaining / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+  elements.countdown.textContent = `${hours}h ${String(minutes).padStart(2, "0")}m`;
+}
+
+function finishGame() {
+  const summary = summarizeGame(roundResults);
+  const state = readState();
+  const firstCompletion = !state.completions?.[dayKey];
+  const previousBest = state.completions?.[dayKey]?.bestScore || 0;
+  state.streak = calculateStreak(state.streak, dayKey);
+  state.completions = state.completions || {};
+  state.completions[dayKey] = {
+    bestScore: Math.max(previousBest, summary.points),
+    completed: true
+  };
+  writeState(state);
+  elements.streak.textContent = String(state.streak.current);
+
+  const [title, message] = resultMessage(summary);
+  elements.resultPercent.textContent = `${summary.percent}%`;
+  elements.resultTitle.textContent = title;
+  elements.resultSummary.textContent = message;
+  elements.resultScore.textContent = String(summary.points);
+  elements.resultStreak.textContent = `${state.streak.current} day${state.streak.current === 1 ? "" : "s"}`;
+  elements.resultGrid.replaceChildren(
+    ...resultGrid(roundResults).split("\n").map((row) => {
+      const line = document.createElement("div");
+      line.textContent = row;
+      return line;
+    })
+  );
+
+  setView("result");
+  updateCountdown();
+  window.clearInterval(countdownTimer);
+  countdownTimer = window.setInterval(updateCountdown, 60000);
+  track("game_complete", {
+    mode: previewMode ? "browser_preview" : "pi_daily",
+    score: summary.points,
+    percent: summary.percent,
+    streak: state.streak.current,
+    firstCompletion
+  });
+}
+
+async function startGame() {
+  if (!authenticated && !previewMode) return;
+  currentRound = 0;
+  currentInput = [];
+  roundResults = [];
+  elements.shareStatus.textContent = "";
+  setView("game");
+  track("game_start", { mode: previewMode ? "browser_preview" : "pi_daily" });
+  await sleep(250);
+  beginRound();
+}
+
+function onIncompletePaymentFound() {
+  // TraceSpark does not initiate payments. The callback is required by the Pi SDK.
 }
 
 function initializePi() {
   if (!window.Pi) {
-    setStatus("Pi SDK not available. Open in Pi Browser or check network access.", "warn");
-    authButton.disabled = true;
-    paymentButton.disabled = true;
+    elements.sdkStatus.textContent = "Pi SDK is unavailable here. Use preview mode or open this page in Pi Browser.";
+    elements.previewButton.hidden = false;
     return;
   }
 
   try {
+    const params = new URLSearchParams(window.location.search);
+    const local = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
+    const sandbox = params.get("sandbox") === "1" || (local && params.get("sandbox") !== "0");
     window.Pi.init({ version: "2.0", sandbox });
-    setStatus(`Pi SDK ready. Sandbox: ${sandbox ? "on" : "off"}.`, "ok");
-    authButton.disabled = false;
-    paymentButton.disabled = false;
-  } catch (error) {
-    setStatus("Pi SDK initialization failed.", "warn");
-    authButton.disabled = true;
-    paymentButton.disabled = true;
-    printResult(error.message || String(error));
-  }
-}
-
-function updateOrderSummary() {
-  const openActions = document.querySelectorAll('[data-fulfillment-label][data-state="needs-action"]').length;
-  if (actionCount) {
-    actionCount.textContent = String(openActions);
-  }
-}
-
-fulfillButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const orderCard = button.closest("[data-order-id]");
-    const fulfillmentLabel = orderCard?.querySelector("[data-fulfillment-label]");
-    const buyerUpdate = orderCard?.querySelector("[data-buyer-update]");
-    const receiptTrail = orderCard?.querySelector("[data-receipt-trail]");
-    const statusBadge = orderCard?.querySelector(".badge");
-
-    if (!orderCard || !fulfillmentLabel || !buyerUpdate || !receiptTrail || !statusBadge) {
-      return;
-    }
-
-    fulfillmentLabel.textContent = "Fulfilled";
-    fulfillmentLabel.dataset.state = "fulfilled";
-    buyerUpdate.textContent = 'Buyer update sent: "Payment received and pickup is ready. Show this receipt at pickup."';
-    receiptTrail.insertAdjacentHTML("beforeend", "<li>Merchant marked the order fulfilled.</li>");
-    statusBadge.textContent = "Fulfilled";
-    statusBadge.className = "badge fulfilled";
-    button.textContent = "Fulfilled";
-    button.disabled = true;
-    updateOrderSummary();
-  });
-});
-
-function getFormValue(formData, key) {
-  return String(formData.get(key) || "").trim();
-}
-
-function buildSignalSummary(formData) {
-  const capturedAt = new Date().toISOString();
-  const requestedFeature = getFormValue(formData, "requestedFeature") || "Not selected";
-
-  return {
-    capturedAt,
-    merchantType: getFormValue(formData, "merchantType") || "Unknown",
-    currentMethod: getFormValue(formData, "currentMethod") || "Not captured",
-    painLevel: getFormValue(formData, "painLevel") || "Not selected",
-    requestedFeature,
-    willingness: getFormValue(formData, "willingness") || "Not selected",
-    quoteOrNote: getFormValue(formData, "merchantNote") || "Not captured",
-    decisionHint: requestedFeature.includes("Discovery")
-      ? "May indicate pivot toward discovery/listing demand."
-      : "Relevant to merchant post-payment operations if pain level is 3+."
-  };
-}
-
-signalForm?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const formData = new FormData(signalForm);
-  printSignalResult(buildSignalSummary(formData));
-});
-
-signalForm?.addEventListener("reset", () => {
-  window.setTimeout(() => {
-    printSignalResult("No interview signal captured yet.");
-  }, 0);
-});
-
-copySignalButton?.addEventListener("click", async () => {
-  const text = signalResult?.textContent || "";
-
-  if (!text || text === "No interview signal captured yet.") {
-    printSignalResult("Generate a summary before copying.");
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(text);
-    copySignalButton.textContent = "Copied";
-    window.setTimeout(() => {
-      copySignalButton.textContent = "Copy summary";
-    }, 1800);
+    elements.authButton.disabled = false;
+    elements.sdkStatus.textContent = sandbox ? "Pi Testnet sandbox ready." : "Pi Testnet app ready.";
   } catch {
-    printSignalResult(`${text}\n\nCopy failed. Select this text manually.`);
+    elements.sdkStatus.textContent = "Pi connection failed. Browser preview remains available.";
+    elements.previewButton.hidden = false;
   }
-});
+}
 
-authButton.addEventListener("click", async () => {
-  if (!window.Pi) {
-    printResult("Pi SDK is unavailable.");
-    return;
+async function authenticate() {
+  elements.authButton.disabled = true;
+  elements.sdkStatus.textContent = "Waiting for Pi consent…";
+  try {
+    await window.Pi.authenticate([], onIncompletePaymentFound);
+    authenticated = true;
+    previewMode = false;
+    elements.sdkStatus.textContent = "Signed in. Starting today's challenge…";
+    track("auth_success", { mode: "pi_daily" });
+    await startGame();
+  } catch {
+    elements.sdkStatus.textContent = "Sign-in did not complete. Try again when ready.";
+    elements.authButton.disabled = false;
+    elements.previewButton.hidden = false;
+    track("auth_failure", { mode: "pi_daily" });
   }
+}
 
-  const scopes = usernameScope.checked ? ["username"] : [];
-  authButton.disabled = true;
-  printResult(`Requesting Pi authentication with scopes: ${scopes.length ? scopes.join(", ") : "(none)"}`);
+function shareText() {
+  const summary = summarizeGame(roundResults);
+  return `TraceSpark #${challengeNumber(dayKey)} ${summary.percent}%\n${resultGrid(roundResults)}\n${summary.points} points · ${readState().streak?.current || 1} day streak\nCan you trace today's path?`;
+}
+
+async function shareResult() {
+  const data = {
+    title: "TraceSpark daily result",
+    text: shareText(),
+    url: window.location.origin + window.location.pathname.replace(/[^/]*$/, "")
+  };
 
   try {
-    const auth = await withTimeout(
-      window.Pi.authenticate(scopes, onIncompletePaymentFound),
-      30000,
-      "Pi authentication did not complete within 30 seconds. The app may need the Developer Portal sandbox URL/authorization flow, or the portal checklist may still be blocked by wallet/API setup."
-    );
-    printResult(safeAuthResult(auth));
+    if (navigator.share) {
+      await navigator.share(data);
+      elements.shareStatus.textContent = "Result shared.";
+    } else {
+      await navigator.clipboard.writeText(`${data.text}\n${data.url}`);
+      elements.shareStatus.textContent = "Result copied. Paste it anywhere you choose.";
+    }
+    track("share_result", { mode: previewMode ? "browser_preview" : "pi_daily" });
   } catch (error) {
-    printResult({
-      error: error?.message || String(error),
-      note: "Auth may require Pi Browser, sandbox authorization, or user consent."
-    });
-  } finally {
-    authButton.disabled = false;
+    if (error?.name !== "AbortError") elements.shareStatus.textContent = "Sharing failed. Try again.";
+  }
+}
+
+function showConsentDialog() {
+  if (!elements.consentDialog.open) elements.consentDialog.showModal();
+}
+
+elements.authButton.addEventListener("click", authenticate);
+elements.previewButton.addEventListener("click", () => {
+  authenticated = false;
+  previewMode = true;
+  startGame();
+});
+elements.replayButton.addEventListener("click", startGame);
+elements.shareButton.addEventListener("click", shareResult);
+elements.allowAnalytics.addEventListener("click", () => {
+  setAnalyticsChoice("allow");
+  track("analytics_opt_in", { mode: "setting" });
+});
+elements.declineAnalytics.addEventListener("click", () => setAnalyticsChoice("decline"));
+elements.privacySettings.addEventListener("click", () => {
+  const erase = window.confirm("Erase your local score, streak, analytics choice, and anonymous installation ID?");
+  if (erase) {
+    resetAllLocalData();
+    window.location.reload();
+  } else {
+    showConsentDialog();
   }
 });
 
-paymentButton.addEventListener("click", async () => {
-  if (!window.Pi) {
-    printPaymentResult("Pi SDK is unavailable.");
-    return;
-  }
-
-  paymentButton.disabled = true;
-  printPaymentResult("Starting Testnet payment. The app will call the backend only after Pi returns a payment id.");
-
-  try {
-    await withTimeout(
-      window.Pi.authenticate(["payments"], onIncompletePaymentFound),
-      30000,
-      "Pi payment authentication did not complete within 30 seconds."
-    );
-
-    window.Pi.createPayment(
-      {
-        amount: 0.01,
-        memo: "Merchant Ops Lab Testnet checklist payment",
-        metadata: {
-          app: "merchant-ops-lab",
-          purpose: "portal-checklist-testnet-payment"
-        }
-      },
-      {
-        onReadyForServerApproval: async (paymentId) => {
-          printPaymentResult({ status: "Approving payment on backend.", paymentId });
-          await postBackend("/api/pi/payments/approve", { paymentId });
-          printPaymentResult({ status: "Payment approved by backend.", paymentId });
-        },
-        onReadyForServerCompletion: async (paymentId, txid) => {
-          printPaymentResult({ status: "Completing payment on backend.", paymentId, txid });
-          await postBackend("/api/pi/payments/complete", { paymentId, txid });
-          printPaymentResult({ status: "Payment completed by backend.", paymentId, txid });
-        },
-        onCancel: (paymentId) => {
-          printPaymentResult({ status: "Payment cancelled.", paymentId });
-          paymentButton.disabled = false;
-        },
-        onError: (error, payment) => {
-          printPaymentResult({
-            error: error?.message || String(error),
-            paymentId: payment?.identifier || payment?.paymentId || null
-          });
-          paymentButton.disabled = false;
-        }
-      }
-    );
-  } catch (error) {
-    printPaymentResult({
-      error: error?.message || String(error),
-      note: "Payment requires Pi Browser, Testnet/sandbox authorization, and a backend with PI_API_KEY configured."
-    });
-    paymentButton.disabled = false;
-  }
-});
-
-document.querySelectorAll("[data-fulfillment-label]").forEach((label) => {
-  label.dataset.state = label.textContent.toLowerCase().includes("needs") ? "needs-action" : "fulfilled";
-});
-
-updateOrderSummary();
+elements.challengeNumber.textContent = `#${challengeNumber(dayKey)}`;
+elements.streak.textContent = String(readState().streak?.current || 0);
+buildGrid();
 initializePi();
+
+if (!analyticsChoice()) {
+  window.setTimeout(showConsentDialog, 350);
+} else {
+  track("session_start", { mode: window.Pi ? "pi_capable" : "web" });
+}

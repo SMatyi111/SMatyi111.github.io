@@ -2,280 +2,130 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Merchant Ops Lab</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#071a2b" />
+    <meta name="description" content="TraceSpark is a short daily memory-path challenge made for mobile play." />
+    <title>TraceSpark — Daily memory challenge</title>
+    <link rel="icon" href="./logo.svg?v=0.1.0" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css?v=0.1.0" />
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=0.1.1"></script>
   </head>
   <body>
-    <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">Pi Testnet research prototype</p>
-        <h1>Merchant Ops Lab</h1>
-        <p class="lead">
-          A small Pi Browser test app for learning whether Pi-accepting merchants need better tools for listings,
-          orders, payment status, and trust workflows.
-        </p>
-        <div class="status-card" aria-live="polite">
-          <span class="status-dot" id="sdk-status-dot"></span>
-          <span id="sdk-status">Checking Pi SDK...</span>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="TraceSpark home">
+          <img src="./logo.svg" width="42" height="42" alt="" />
+          <span>TraceSpark</span>
+        </a>
+        <div class="streak-chip" aria-label="Current daily streak">
+          <span aria-hidden="true">◆</span>
+          <strong id="streak-count">0</strong>
+          <span>day streak</span>
+        </div>
+      </header>
+
+      <section id="welcome-view" class="view welcome-view">
+        <div class="challenge-label">
+          <span>Daily challenge</span>
+          <strong id="challenge-number">#—</strong>
+        </div>
+        <h1>Watch the spark.<br /><em>Trace the path.</em></h1>
+        <p class="intro">Three short rounds. Every player gets the same path today. Remember it, then tap it back.</p>
+
+        <div class="demo-path" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <div class="welcome-actions">
+          <button id="auth-button" class="primary-button" type="button" disabled>
+            <span>Sign in with Pi</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <button id="preview-button" class="text-button" type="button" hidden>Play browser preview</button>
+          <p id="sdk-status" class="microcopy" role="status">Connecting to Pi…</p>
+        </div>
+
+        <div class="rules" aria-label="Game summary">
+          <div><strong>3</strong><span>rounds</span></div>
+          <div><strong>15</strong><span>sparks</span></div>
+          <div><strong>&lt; 90s</strong><span>to play</span></div>
         </div>
       </section>
 
-      <section class="panel">
-        <h2>Pi account test</h2>
-        <p>
-          Start with minimal consent. By default this app requests no optional scopes. Username is optional for testing
-          a greeting only.
-        </p>
-
-        <label class="checkbox-row">
-          <input id="username-scope" type="checkbox" />
-          Request username scope
-        </label>
-
-        <button id="auth-button" type="button">Authenticate with Pi</button>
-
-        <pre id="auth-result" class="result" aria-live="polite">Not authenticated.</pre>
-      </section>
-
-      <section class="panel">
-        <h2>Testnet payment check</h2>
-        <p>
-          This is for the portal checklist transaction step. It creates a tiny Testnet payment and requires a secure
-          backend to approve and complete it. The Pi API key must never be placed in browser code.
-        </p>
-
-        <button id="payment-button" type="button">Create 0.01 Test-Pi payment</button>
-
-        <pre id="payment-result" class="result" aria-live="polite">Payment not started.</pre>
-      </section>
-
-      <section class="panel">
-        <p class="eyebrow">Validation sprint 01</p>
-        <h2>Today in the shop</h2>
-        <p>
-          A static merchant-ops sketch for testing one question: after a Pi payment, does the seller need a clearer
-          view of payment status, fulfillment, buyer updates, and receipt trail?
-        </p>
-
-        <div class="metrics" aria-label="Merchant order summary">
-          <article>
-            <span class="metric-value" id="paid-count">2</span>
-            <span class="metric-label">paid orders</span>
-          </article>
-          <article>
-            <span class="metric-value" id="action-count">1</span>
-            <span class="metric-label">needs action</span>
-          </article>
-          <article>
-            <span class="metric-value">0.37</span>
-            <span class="metric-label">Test-Pi tracked</span>
-          </article>
-        </div>
-
-        <div class="orders" aria-label="Mock merchant orders">
-          <article class="order-card" data-order-id="pop-up-coffee">
-            <div class="order-header">
-              <div>
-                <p class="eyebrow">Order MOL-1042</p>
-                <h3>Pop-up coffee pickup</h3>
-              </div>
-              <span class="badge paid">Paid</span>
-            </div>
-            <dl class="order-details">
-              <div>
-                <dt>Amount</dt>
-                <dd>0.12 Test-Pi</dd>
-              </div>
-              <div>
-                <dt>Buyer note</dt>
-                <dd>Pickup after 16:00, oat milk.</dd>
-              </div>
-              <div>
-                <dt>Fulfillment</dt>
-                <dd data-fulfillment-label>Needs action</dd>
-              </div>
-            </dl>
-            <p class="buyer-update" data-buyer-update>
-              Suggested buyer update: "Payment received. Your coffee order is queued for pickup after 16:00."
-            </p>
-            <button class="secondary-button" type="button" data-fulfill-button>Mark fulfilled</button>
-            <ol class="receipt-trail" data-receipt-trail>
-              <li>Payment created in Pi Browser.</li>
-              <li>Backend approved payment.</li>
-              <li>Waiting for merchant fulfillment.</li>
-            </ol>
-          </article>
-
-          <article class="order-card">
-            <div class="order-header">
-              <div>
-                <p class="eyebrow">Order MOL-1041</p>
-                <h3>Market stall reservation</h3>
-              </div>
-              <span class="badge fulfilled">Fulfilled</span>
-            </div>
-            <dl class="order-details">
-              <div>
-                <dt>Amount</dt>
-                <dd>0.25 Test-Pi</dd>
-              </div>
-              <div>
-                <dt>Buyer note</dt>
-                <dd>Saturday table near entrance.</dd>
-              </div>
-              <div>
-                <dt>Fulfillment</dt>
-                <dd>Receipt sent</dd>
-              </div>
-            </dl>
-            <p class="buyer-update">Buyer update sent: "Reservation confirmed. Bring your QR receipt on Saturday."</p>
-            <ol class="receipt-trail">
-              <li>Payment completed.</li>
-              <li>Merchant confirmed reservation.</li>
-              <li>Buyer receipt sent.</li>
-            </ol>
-          </article>
-
-          <article class="order-card muted-order">
-            <div class="order-header">
-              <div>
-                <p class="eyebrow">Draft MOL-1043</p>
-                <h3>Custom delivery request</h3>
-              </div>
-              <span class="badge pending">Waiting</span>
-            </div>
-            <dl class="order-details">
-              <div>
-                <dt>Amount</dt>
-                <dd>Quote needed</dd>
-              </div>
-              <div>
-                <dt>Buyer note</dt>
-                <dd>Can you deliver outside normal hours?</dd>
-              </div>
-              <div>
-                <dt>Fulfillment</dt>
-                <dd>Not ready</dd>
-              </div>
-            </dl>
-            <p class="buyer-update">Suggested next step: ask one clarifying question before requesting payment.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="panel">
-        <p class="eyebrow">Interview capture</p>
-        <h2>Merchant signal log</h2>
-        <p>
-          Use this during a demo call or chat. It stores nothing on a server. Generate a compact summary, copy it, and
-          paste it into the research notes after the conversation.
-        </p>
-
-        <form id="signal-form" class="signal-form">
-          <label>
-            Merchant type
-            <input id="merchant-type" name="merchantType" type="text" placeholder="Cafe, market seller, online shop..." />
-          </label>
-
-          <label>
-            Current tracking method
-            <textarea
-              id="current-method"
-              name="currentMethod"
-              rows="3"
-              placeholder="Chat messages, spreadsheet, memory, marketplace app..."
-            ></textarea>
-          </label>
-
-          <label>
-            Pain level
-            <select id="pain-level" name="painLevel">
-              <option value="">Select one</option>
-              <option value="1 - no pain">1 - no pain</option>
-              <option value="2 - mild annoyance">2 - mild annoyance</option>
-              <option value="3 - recurring problem">3 - recurring problem</option>
-              <option value="4 - costly problem">4 - costly problem</option>
-              <option value="5 - urgent problem">5 - urgent problem</option>
-            </select>
-          </label>
-
-          <fieldset>
-            <legend>Strongest requested feature</legend>
-            <label class="radio-row">
-              <input name="requestedFeature" type="radio" value="Payment status confirmation" />
-              Payment status confirmation
-            </label>
-            <label class="radio-row">
-              <input name="requestedFeature" type="radio" value="Fulfillment tracking" />
-              Fulfillment tracking
-            </label>
-            <label class="radio-row">
-              <input name="requestedFeature" type="radio" value="Buyer update templates" />
-              Buyer update templates
-            </label>
-            <label class="radio-row">
-              <input name="requestedFeature" type="radio" value="Receipt or dispute trail" />
-              Receipt or dispute trail
-            </label>
-            <label class="radio-row">
-              <input name="requestedFeature" type="radio" value="Discovery or traffic instead" />
-              Discovery or traffic instead
-            </label>
-          </fieldset>
-
-          <label>
-            Willingness signal
-            <select id="willingness" name="willingness">
-              <option value="">Select one</option>
-              <option value="No interest">No interest</option>
-              <option value="Would try free demo">Would try free demo</option>
-              <option value="Would pay for setup/support">Would pay for setup/support</option>
-              <option value="Would pay monthly">Would pay monthly</option>
-            </select>
-          </label>
-
-          <label>
-            Exact quote or note
-            <textarea
-              id="merchant-note"
-              name="merchantNote"
-              rows="3"
-              placeholder="Write one concrete quote or objection..."
-            ></textarea>
-          </label>
-
-          <div class="button-row">
-            <button type="submit">Generate summary</button>
-            <button id="copy-signal-button" class="secondary-button" type="button">Copy summary</button>
-            <button id="reset-signal-button" class="secondary-button" type="reset">Reset</button>
+      <section id="game-view" class="view game-view" hidden>
+        <div class="round-header">
+          <div>
+            <span class="overline">Daily challenge</span>
+            <h1 id="round-title">Round 1 of 3</h1>
           </div>
-        </form>
+          <div id="round-dots" class="round-dots" aria-label="Round progress"></div>
+        </div>
 
-        <pre id="signal-result" class="result" aria-live="polite">No interview signal captured yet.</pre>
+        <div class="instruction-card">
+          <span id="phase-icon" class="phase-icon" aria-hidden="true">◉</span>
+          <div>
+            <strong id="phase-title">Get ready</strong>
+            <p id="phase-message" aria-live="polite">The path will light up one spark at a time.</p>
+          </div>
+        </div>
+
+        <div id="spark-grid" class="spark-grid" aria-label="Memory path grid"></div>
+
+        <div class="input-progress">
+          <span id="input-label">Watch closely</span>
+          <div id="input-marks" class="input-marks" aria-hidden="true"></div>
+        </div>
       </section>
 
-      <section class="grid">
-        <article>
-          <h2>Merchant problem</h2>
-          <ul>
-            <li>What happened after a buyer says they paid?</li>
-            <li>Which orders still need fulfillment?</li>
-            <li>Which listings are trustworthy and current?</li>
-          </ul>
-        </article>
+      <section id="result-view" class="view result-view" hidden>
+        <p class="overline">Daily challenge complete</p>
+        <div class="score-ring" aria-label="Final accuracy">
+          <strong id="result-percent">0%</strong>
+          <span>accuracy</span>
+        </div>
+        <h1 id="result-title">Path captured.</h1>
+        <p id="result-summary" class="intro"></p>
 
-        <article>
-          <h2>Current experiment</h2>
-          <ul>
-            <li>Confirm Pi SDK auth works in sandbox.</li>
-            <li>Use Testnet payment flow only after backend env is configured.</li>
-            <li>Keep API keys server-side only.</li>
-          </ul>
-        </article>
+        <div id="result-grid" class="result-grid" aria-label="Round results"></div>
+
+        <div class="result-stats">
+          <div><span>Score</span><strong id="result-score">0</strong></div>
+          <div><span>Streak</span><strong id="result-streak">1 day</strong></div>
+          <div><span>Next path</span><strong id="next-countdown">—</strong></div>
+        </div>
+
+        <button id="share-button" class="primary-button" type="button">
+          <span>Share result</span>
+          <span aria-hidden="true">↗</span>
+        </button>
+        <button id="replay-button" class="text-button" type="button">Replay today's path</button>
+        <p id="share-status" class="microcopy" role="status"></p>
       </section>
+
+      <footer>
+        <p>Memory, not money. No prizes, deposits, or wagering.</p>
+        <nav aria-label="Legal and settings">
+          <a href="./privacy.html">Privacy</a>
+          <button id="privacy-settings-button" type="button">Data settings</button>
+        </nav>
+      </footer>
     </main>
+
+    <dialog id="consent-dialog" class="consent-dialog">
+      <form method="dialog">
+        <p class="overline">Optional analytics</p>
+        <h2>Help test whether this game deserves to exist?</h2>
+        <p>
+          Allow privacy-minimized gameplay events so we can count completions, returns, and shares. We never send your
+          Pi identity, username, wallet, token, contacts, or location.
+        </p>
+        <div class="dialog-actions">
+          <button id="allow-analytics" class="primary-button" value="allow">Allow analytics</button>
+          <button id="decline-analytics" class="secondary-button" value="decline">Play without analytics</button>
+        </div>
+        <a href="./privacy.html">Read the privacy policy</a>
+      </form>
+    </dialog>
   </body>
 </html>

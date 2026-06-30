@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#071a2b" />
+    <title>Privacy — TraceSpark</title>
+    <link rel="icon" href="./logo.svg?v=0.1.0" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css?v=0.1.0" />
+  </head>
+  <body>
+    <main class="legal-shell">
+      <a class="back-link" href="./">← Back to TraceSpark</a>
+      <p class="overline">Effective 30 June 2026</p>
+      <h1>Privacy policy</h1>
+
+      <section>
+        <h2>What the game needs</h2>
+        <p>
+          TraceSpark uses Pi authentication to confirm that the game runs in the Pi environment. Authentication requests
+          no optional scopes. The game does not store or transmit your Pi UID, username, wallet address, access token,
+          passphrase, payment information, contacts, or location.
+        </p>
+      </section>
+
+      <section>
+        <h2>Local game data</h2>
+        <p>
+          Your device stores daily completion, best score, streak, analytics choice, and—only if analytics is
+          allowed—a random installation identifier. This supports the game and can be erased using Data settings.
+        </p>
+      </section>
+
+      <section>
+        <h2>Optional gameplay analytics</h2>
+        <p>
+          Analytics is off until you allow it. If allowed, the random installation identifier is hashed in your browser.
+          We receive the hash, event name, UTC date, game mode, score or streak where relevant, and app version. This lets
+          us count distinct completions and whether the same installation returns on another day. The hash is
+          pseudonymous: it is not your Pi identity, but it can distinguish one installation over time.
+        </p>
+        <p>
+          Hosting infrastructure may process normal request metadata such as IP address and user agent for security and
+          operations. TraceSpark does not add either field to its analytics event records. Runtime logs are used only for
+          this validation experiment and should be deleted or aggregated after the experiment review.
+        </p>
+      </section>
+
+      <section>
+        <h2>Sharing</h2>
+        <p>
+          The Share result button opens your device's share sheet or copies result text. TraceSpark does not read your
+          contacts or post without your action. A share event is recorded only when optional analytics is enabled and the
+          share or copy action completes.
+        </p>
+      </section>
+
+      <section>
+        <h2>Your choices</h2>
+        <p>
+          You may play without analytics. Open Data settings on the game screen to change your choice or erase all local
+          game data. Erasing local data prevents future events from linking to the old installation hash; existing
+          aggregate or runtime records cannot be located by Pi account because no Pi identity is collected.
+        </p>
+      </section>
+
+      <section>
+        <h2>Contact and status</h2>
+        <p>
+          TraceSpark is an independent Testnet research prototype, not an official Pi Network product. Privacy questions
+          may be filed through the project's public app support channel before ecosystem submission. This policy will be
+          updated with a durable support address before public listing.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
